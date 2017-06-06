@@ -26,8 +26,8 @@ Distances = 100, 150, 200, 250
 }
 """
 
-class PointingExperimentModel(object):
 
+class PointingExperimentModel(object):
     def __init__(self, user_id, sizes, distances, repetitions=4):
         self.timer = QtCore.QTime()
         self.user_id = user_id
@@ -46,9 +46,10 @@ class PointingExperimentModel(object):
 
     def initLogging(self):
         self.logfile = open("user" + str(self.user_id) + ".csv", "a")
-        self.out = csv.DictWriter(self.logfile, ["timestamp (ISO)", "user_id", "trial", "target_distance", "target_size",
-                                                 "movement_time (ms)", "click_offset_x", "click_offset_y",
-                                                 "number_of_errors"],
+        self.out = csv.DictWriter(self.logfile,
+                                  ["timestamp (ISO)", "user_id", "trial", "target_distance", "target_size",
+                                   "movement_time (ms)", "click_offset_x", "click_offset_y",
+                                   "number_of_errors"],
                                   delimiter=";", quoting=csv.QUOTE_ALL)
         self.out.writeheader()
 
@@ -59,8 +60,8 @@ class PointingExperimentModel(object):
             return self.targets[self.elapsed]
 
     def register_click(self, target_pos, click_pos):
-        dist = math.sqrt((target_pos[0]-click_pos[0]) * (target_pos[0]-click_pos[0]) +
-                         (target_pos[1]-click_pos[1]) * (target_pos[1]-click_pos[1]))
+        dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
+                         (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
         if dist > self.current_target()[1]:
             self.errors += 1
             return False
@@ -76,10 +77,13 @@ class PointingExperimentModel(object):
         current_values = {"timestamp (ISO)": self.timestamp(), "user_id": self.user_id,
                           "trial": self.elapsed, "target_distance": distance,
                           "target_size": size, "movement_time (ms)": time,
-                          "click_offset_x": click_offset[0], "click_offset_y": click_offset[1], "number_of_errors": self.errors
+                          "click_offset_x": click_offset[0], "click_offset_y": click_offset[1],
+                          "number_of_errors": self.errors
                           }
         self.out.writerow(current_values)
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d" % (self.timestamp(), self.user_id, self.elapsed, distance, size, time, click_offset[0], click_offset[1], self.errors))
+        print("%s; %s; %d; %d; %d; %d; %d; %d; %d" % (
+        self.timestamp(), self.user_id, self.elapsed, distance, size, time, click_offset[0], click_offset[1],
+        self.errors))
 
     def start_measurement(self):
         if not self.mouse_moving:
@@ -98,19 +102,19 @@ class PointingExperimentModel(object):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
 
 
-
-
 class PointingExperimentTest(QtWidgets.QWidget):
+    UI_WIDTH = 1920
+    UI_HEIGHT = 800
 
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
         self.model = model
-        self.start_pos = (960, 400)
+        self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
         self.initUI()
 
     def initUI(self):
         self.text = "Please click on the target"
-        self.setGeometry(0, 0, 1920, 800)
+        self.setGeometry(0, 0, self.UI_WIDTH, self.UI_HEIGHT)
         self.setWindowTitle('FittsLawTest')
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
@@ -123,23 +127,22 @@ class PointingExperimentTest(QtWidgets.QWidget):
             hit = self.model.register_click(tp, (ev.x(), ev.y()))
             if hit:
                 QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
-            # self.update()
+                self.update()
         return
-
 
     def mouseMoveEvent(self, ev):
         if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
             self.model.start_measurement()
+            # self.update()
         return
-
 
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
         self.drawClickTarget(qp)
         self.drawRandomTargets(qp)
+        self.drawText(event, qp)
         qp.end()
-
 
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
@@ -161,8 +164,9 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.exit(1)
         # self.drawCircle(qp, QtGui.QColor(212, 212, 212))
         qp.setBrush(QtGui.QColor(212, 212, 212))
-        for number in number_of_targets:
-            qp.drawEllipse(random.randint(size+0, 960-size), random.randint(0+size, 400-size), size, size)
+        for number in range(number_of_targets):
+            qp.drawEllipse(random.randint(size + 0, self.UI_WIDTH / 2 - size), random.randint(0 + size, self.UI_HEIGHT /
+                                                                                              2 - size), size, size)
 
     def drawClickTarget(self, qp):
         if self.model.current_target() is not None:
@@ -171,9 +175,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.stderr.write("no targets left...")
             sys.exit(1)
         x, y = self.target_pos(distance)
-        qp.setBrush(QtGui.QColor(200, 34, 20))
+        qp.setBrush(QtGui.QColor(59, 255, 0))
         qp.drawEllipse(x - size / 2, y - size / 2, size, size)
-
 
 
 def main():
@@ -218,6 +221,7 @@ def parse_json_file(filename):
     distances = [int(x) for x in distances_string.split(",")]
 
     return user_id, widths, distances
+
 
 if __name__ == '__main__':
     main()
