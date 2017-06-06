@@ -62,6 +62,13 @@ class PointingExperimentModel(object):
         else:
             return self.targets[self.elapsed]
 
+    def is_point_inside(self, target_pos, click_pos):
+        dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
+                         (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
+        if dist <= self.current_target()[1] / 2:
+            return True
+        return False
+
     def register_click(self, target_pos, click_pos):
         dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
                          (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
@@ -114,8 +121,6 @@ class Ellipse():
     def is_point_inside(self, x, y):
         dist = math.sqrt((self.pos_x - x) * (self.pos_x - x) +
                          (self.pos_y - y) * (self.pos_y - y))
-        print(str(self.pos_x) + " " + str(self.pos_y) + " "+ str(self.diameter) + " " + str(dist))
-        print(str(x) + " " + str(y))
         if dist <= self.diameter / 2:
             return True
         return False
@@ -197,9 +202,9 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp = QtGui.QPainter()
         qp.begin(self)
         self.drawRandomTargets(qp)
-        self.highlightTarget(qp)
         self.drawClickTarget(qp)
         self.drawText(event, qp)
+        self.highlightTarget(qp)
         qp.end()
 
     def highlightTarget(self, qp):
@@ -207,6 +212,15 @@ class PointingExperimentTest(QtWidgets.QWidget):
             qp.setBrush(QtGui.QColor(200, 34, 20))
             qp.drawEllipse(QtCore.QPoint(self.ellipses[self.ID].pos_x, self.ellipses[self.ID].pos_y), self.ellipses[self.ID].diameter / 2,
                            self.ellipses[self.ID].diameter / 2)
+
+        cursor_pos = self.mapFromGlobal(QtGui.QCursor.pos())
+        tp = self.target_pos(self.model.current_target()[0])
+        hit = self.model.is_point_inside(tp, (cursor_pos.x(), cursor_pos.y()))
+        if hit:
+            qp.setBrush(QtGui.QColor(200, 34, 20))
+            qp.drawEllipse(QtCore.QPoint(tp[0], tp[1]),
+                           self.model.current_target()[1] / 2,
+                           self.model.current_target()[1] / 2)
         return
 
     def drawText(self, event, qp):
@@ -238,7 +252,6 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.stderr.write("no targets left...")
             sys.exit(1)
         x, y = self.target_pos(distance)
-        self.ellipses.append(Ellipse(x, y, size))
         qp.setBrush(QtGui.QColor(59, 255, 0))
         qp.drawEllipse(QtCore.QPoint(x, y), size / 2, size / 2)
 
