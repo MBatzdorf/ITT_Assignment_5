@@ -147,11 +147,11 @@ class PointingExperimentTest(QtWidgets.QWidget):
                 pos_y = random.randint(0 + size, self.UI_HEIGHT - size)
                 not_occupied = True
                 for e in self.ellipses:
-                    if self.are_circles_intersecting(pos_x, pos_y, size, e[0], e[1], e[2]):
+                    if self.are_circles_intersecting(pos_x, pos_y, size, e.pos_x, e.pos_y, e.diameter):
                         not_occupied = False
                 retry_count += 1
                 can_draw = not_occupied
-            self.ellipses.append([pos_x, pos_y, size])
+            self.ellipses.append(Ellipse(pos_x, pos_y, size))
 
 
     def initUI(self):
@@ -212,7 +212,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
     def drawRandomTargets(self, qp):
         for e in self.ellipses:
-            qp.drawEllipse(e[0], e[1], e[2], e[2])
+            qp.drawEllipse(e.pos_x, e.pos_y, e.diameter, e.diameter)
 
 
     def drawClickTarget(self, qp):
