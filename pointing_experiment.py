@@ -28,6 +28,7 @@ ImprovePointing = 0
 }
 """
 
+
 class PointingExperimentModel(object):
     def __init__(self, user_id, diameters, distances, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
@@ -83,7 +84,9 @@ class PointingExperimentModel(object):
                           "number_of_errors": self.errors, "improved_pointing": self.improve_pointing
                           }
         self.out.writerow(current_values)
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (self.timestamp(), self.user_id, self.elapsed, distance, diameters, time, click_offset[0], click_offset[1], self.errors, self.improve_pointing))
+        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (
+        self.timestamp(), self.user_id, self.elapsed, distance, diameters, time, click_offset[0], click_offset[1],
+        self.errors, self.improve_pointing))
 
     def start_measurement(self):
         if not self.mouse_moving:
@@ -101,8 +104,8 @@ class PointingExperimentModel(object):
     def timestamp(self):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
 
-class Ellipse():
 
+class Ellipse():
     def __init__(self, position_x, position_y, diameter):
         self.pos_x = position_x
         self.pos_y = position_y
@@ -114,6 +117,7 @@ class Ellipse():
         if dist <= self.diameter / 2:
             return True
         return False
+
 
 class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
@@ -155,7 +159,6 @@ class PointingExperimentTest(QtWidgets.QWidget):
                 can_draw = not_occupied
             self.ellipses.append([pos_x, pos_y, size])
 
-
     def initUI(self):
         self.text = "Please click on the target"
         self.setGeometry(0, 0, self.UI_WIDTH, self.UI_HEIGHT)
@@ -194,8 +197,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def highlightTarget(self, qp):
         if self.ID != -1:
             qp.setBrush(QtGui.QColor(200, 34, 20))
-            qp.drawEllipse(self.ellipses[self.ID][0], self.ellipses[self.ID][1], self.ellipses[self.ID][2],
-                           self.ellipses[self.ID][2])
+            qp.drawEllipse(self.ellipses[self.ID].pos_x, self.ellipses[self.ID].pos_y, self.ellipses[self.ID].diameter,
+                           self.ellipses[self.ID].diameter)
         return
 
     def drawText(self, event, qp):
@@ -213,13 +216,12 @@ class PointingExperimentTest(QtWidgets.QWidget):
         return math.radians(random.randint(0, 360))
 
     def are_circles_intersecting(self, x1, y1, radius1, x2, y2, radius2):
-        distance_circles = math.sqrt(math.pow(x2-x1, 2) + math.pow(y2 - y1, 2))
+        distance_circles = math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2))
         return distance_circles <= (radius1 + radius2)
 
     def drawRandomTargets(self, qp):
         for e in self.ellipses:
             qp.drawEllipse(e[0], e[1], e[2], e[2])
-
 
     def drawClickTarget(self, qp):
         if self.model.current_target() is not None:
