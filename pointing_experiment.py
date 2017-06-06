@@ -114,6 +114,8 @@ class Ellipse():
     def is_point_inside(self, x, y):
         dist = math.sqrt((self.pos_x - x) * (self.pos_x - x) +
                          (self.pos_y - y) * (self.pos_y - y))
+        print(str(self.pos_x) + " " + str(self.pos_y) + " "+ str(self.diameter) + " " + str(dist))
+        print(str(x) + " " + str(y))
         if dist <= self.diameter / 2:
             return True
         return False
@@ -182,7 +184,13 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def mouseMoveEvent(self, ev):
         if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
             self.model.start_measurement()
-            # self.update()
+            self.update()
+
+        self.ID = -1
+        for i in range(len(self.ellipses)):
+            if self.ellipses[i].is_point_inside(ev.x(), ev.y()):
+                self.ID = i
+
         return
 
     def paintEvent(self, event):
@@ -197,8 +205,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def highlightTarget(self, qp):
         if self.ID != -1:
             qp.setBrush(QtGui.QColor(200, 34, 20))
-            qp.drawEllipse(self.ellipses[self.ID].pos_x, self.ellipses[self.ID].pos_y, self.ellipses[self.ID].diameter,
-                           self.ellipses[self.ID].diameter)
+            qp.drawEllipse(QtCore.QPoint(self.ellipses[self.ID].pos_x, self.ellipses[self.ID].pos_y), self.ellipses[self.ID].diameter / 2,
+                           self.ellipses[self.ID].diameter / 2)
         return
 
     def drawText(self, event, qp):
@@ -221,7 +229,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
     def drawRandomTargets(self, qp):
         for e in self.ellipses:
-            qp.drawEllipse(e.pos_x, e.pos_y, e.diameter, e.diameter)
+            qp.drawEllipse(QtCore.QPoint(e.pos_x, e.pos_y), e.diameter / 2, e.diameter / 2)
 
     def drawClickTarget(self, qp):
         if self.model.current_target() is not None:
@@ -231,7 +239,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.exit(1)
         x, y = self.target_pos(distance)
         qp.setBrush(QtGui.QColor(59, 255, 0))
-        qp.drawEllipse(x - size / 2, y - size / 2, size, size)
+        qp.drawEllipse(QtCore.QPoint(x, y), size / 2, size / 2)
 
 
 def main():
