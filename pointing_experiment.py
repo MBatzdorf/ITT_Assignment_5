@@ -106,6 +106,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
     UI_HEIGHT = 800
 
+    ellipses = []
+
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
         self.model = model
@@ -179,7 +181,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.exit(1)
         # self.drawCircle(qp, QtGui.QColor(212, 212, 212))
         qp.setBrush(QtGui.QColor(212, 212, 212))
-        ellipses = []
+        # ellipses = []
         for number in range(number_of_targets):
             can_draw = False
             MAX_RETRIES = 3
@@ -188,15 +190,14 @@ class PointingExperimentTest(QtWidgets.QWidget):
                 pos_x = random.randint(size + 0, self.UI_WIDTH - size)
                 pos_y = random.randint(0 + size, self.UI_HEIGHT - size)
                 not_occupied = True
-                for e in ellipses:
-                    print(str(e[0]) + " " + str(e[1])+ " " + str(e[2]))
+                for e in self.ellipses:
                     if self.are_circles_intersecting(pos_x, pos_y, size, e[0], e[1], e[2]):
                         not_occupied = False
                         print("Intersecting")
                 retry_count += 1
                 can_draw = not_occupied
             qp.drawEllipse(pos_x, pos_y, size, size)
-            ellipses.append([pos_x, pos_y, size])
+            self.ellipses.append([pos_x, pos_y, size])
 
 
     def drawClickTarget(self, qp):
