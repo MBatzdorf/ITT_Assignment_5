@@ -4,6 +4,7 @@
 import sys
 import json
 import configparser
+import random
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 """ setup ini file format:
@@ -36,11 +37,13 @@ class PointingExperimentModel(object):
         sys.stderr.write(self.timestamp() + ": " + str(msg) + "\n")
 
 
+
 class PointingExperimentTest(QtWidgets.QWidget):
 
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
         self.model = model
+        self.start_pos = (960, 400)
         self.initUI()
 
     def initUI(self):
@@ -52,15 +55,52 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.show()
 
     def mousePressEvent(self, ev):
+        if ev.button() == QtCore.Qt.LeftButton:
+            tp = self.target_pos(self.model.current_target()[0])
+            hit = self.model.register_click(tp, (ev.x(), ev.y()))
+            if hit:
+                QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
+            # self.update()
         return
 
     def mouseMoveEvent(self, ev):
+        if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
+            self.model.start_measurement()
         return
 
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
+        self.drawClickTarget(qp)
+        self.drawRandomTargets(qp)
         qp.end()
+
+    def target_pos(self, distance):
+        x = self.start_pos[0] + distance
+        y = self.start_pos[1]
+        return (x, y)
+
+    def drawRandomTargets(self, qp):
+        number_of_targets = random.randint(3, 10)
+        if self.model.current_target() is not None:
+            distance, size = self.model.current_target()
+        else:
+            sys.stderr.write("no targets left...")
+            sys.exit(1)
+        # self.drawCircle(qp, QtGui.QColor(212, 212, 212))
+        qp.setBrush(QtGui.QColor(212, 212, 212))
+        for number in number_of_targets:
+            qp.drawEllipse(random.randint(size+0, 960-size), random.randint(0+size, 400-size), size, size)
+
+    def drawClickTarget(self, qp):
+        if self.model.current_target() is not None:
+            distance, size = self.model.current_target()
+        else:
+            sys.stderr.write("no targets left...")
+            sys.exit(1)
+        x, y = self.target_pos(distance)
+        qp.setBrush(QtGui.QColor(200, 34, 20))
+        qp.drawEllipse(x-size/2, y-size/2, size, size)
 
 
 def main():
