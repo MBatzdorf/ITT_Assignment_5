@@ -110,6 +110,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         super(PointingExperimentTest, self).__init__()
         self.model = model
         self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
+        self.random_angle_in_rad = self.getRandumAngleInRad()
         self.initUI()
 
     def initUI(self):
@@ -127,6 +128,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             hit = self.model.register_click(tp, (ev.x(), ev.y()))
             if hit:
                 QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
+                self.random_angle_in_rad = self.getRandumAngleInRad()
                 self.update()
         return
 
@@ -151,9 +153,13 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp.drawText(event.rect(), QtCore.Qt.AlignCenter, self.text)
 
     def target_pos(self, distance):
-        x = self.start_pos[0] + distance
-        y = self.start_pos[1]
+        x = self.start_pos[0] + distance * math.cos(self.random_angle_in_rad)
+        y = self.start_pos[1] + distance * math.sin(self.random_angle_in_rad)
+
         return (x, y)
+
+    def getRandumAngleInRad(self):
+        return math.radians(random.randint(0, 360))
 
     def drawRandomTargets(self, qp):
         number_of_targets = random.randint(3, 10)
