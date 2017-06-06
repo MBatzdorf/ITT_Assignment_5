@@ -117,7 +117,28 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.initUI()
 
     def initRandomTargets(self):
-        return
+        number_of_targets = random.randint(3, 10)
+        self.ellipses = []
+        if self.model.current_target() is not None:
+            distance, size = self.model.current_target()
+        else:
+            sys.stderr.write("no targets left...")
+            sys.exit(1)
+        # ellipses = []
+        for number in range(number_of_targets):
+            can_draw = False
+            MAX_RETRIES = 3
+            retry_count = 0
+            while (not can_draw and retry_count < MAX_RETRIES):
+                pos_x = random.randint(size + 0, self.UI_WIDTH - size)
+                pos_y = random.randint(0 + size, self.UI_HEIGHT - size)
+                not_occupied = True
+                for e in self.ellipses:
+                    if self.are_circles_intersecting(pos_x, pos_y, size, e[0], e[1], e[2]):
+                        not_occupied = False
+                retry_count += 1
+                can_draw = not_occupied
+            self.ellipses.append([pos_x, pos_y, size])
 
 
     def initUI(self):
@@ -136,6 +157,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             if hit:
                 QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
                 self.random_angle_in_rad = self.getRandumAngleInRad()
+                self.initRandomTargets()
                 self.update()
         return
 
@@ -176,30 +198,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
         return distance_circles <= (radius1 + radius2)
 
     def drawRandomTargets(self, qp):
-        number_of_targets = random.randint(3, 10)
-        if self.model.current_target() is not None:
-            distance, size = self.model.current_target()
-        else:
-            sys.stderr.write("no targets left...")
-            sys.exit(1)
-        # self.drawCircle(qp, QtGui.QColor(212, 212, 212))
-        qp.setBrush(QtGui.QColor(212, 212, 212))
-        # ellipses = []
-        for number in range(number_of_targets):
-            can_draw = False
-            MAX_RETRIES = 3
-            retry_count = 0
-            while(not can_draw and retry_count < MAX_RETRIES):
-                pos_x = random.randint(size + 0, self.UI_WIDTH - size)
-                pos_y = random.randint(0 + size, self.UI_HEIGHT - size)
-                not_occupied = True
-                for e in self.ellipses:
-                    if self.are_circles_intersecting(pos_x, pos_y, size, e[0], e[1], e[2]):
-                        not_occupied = False
-                retry_count += 1
-                can_draw = not_occupied
-            qp.drawEllipse(pos_x, pos_y, size, size)
-            self.ellipses.append([pos_x, pos_y, size])
+        for e in self.ellipses:
+            qp.drawEllipse(e[0], e[1], e[2], e[2])
 
 
     def drawClickTarget(self, qp):
