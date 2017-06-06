@@ -104,7 +104,7 @@ class PointingExperimentModel(object):
 
 class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
-    UI_HEIGHT = 1080
+    UI_HEIGHT = 800
 
     ellipses = []
 
@@ -152,6 +152,10 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.drawClickTarget(qp)
         self.drawText(event, qp)
         qp.end()
+
+    def highlightTarget(self, qp, index):
+        qp.setBrush(QtGui.QColor(200, 34, 20))
+        qp.drawEllipse(pos_x, pos_y, size, size)
 
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
