@@ -101,6 +101,19 @@ class PointingExperimentModel(object):
     def timestamp(self):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
 
+class Ellipse():
+
+    def __init__(self, position_x, position_y, diameter):
+        self.pos_x = position_x
+        self.pos_y = position_y
+        self.diameter = diameter
+
+    def is_point_inside(self, x, y):
+        dist = math.sqrt((self.pos_x - x) * (self.pos_x - x) +
+                         (self.pos_y - y) * (self.pos_y - y))
+        if dist <= self.diameter / 2:
+            return True
+        return False
 
 class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
