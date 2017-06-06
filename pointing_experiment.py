@@ -110,7 +110,11 @@ class PointingExperimentTest(QtWidgets.QWidget):
         super(PointingExperimentTest, self).__init__()
         self.model = model
         self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
+        self.initRandomTargets()
         self.initUI()
+
+    def initRandomTargets(self):
+
 
     def initUI(self):
         self.text = "Please click on the target"
@@ -154,6 +158,10 @@ class PointingExperimentTest(QtWidgets.QWidget):
         x = self.start_pos[0] + distance
         y = self.start_pos[1]
         return (x, y)
+
+    def are_circles_intersecting(self, x1, y1, radius1, x2, y2, radius2):
+        distance_circles = math.sqrt(math.pow(x2-x1, 2) + math.pow(y2 - y1, 2))
+        return distance_circles <= (radius1 + radius2)
 
     def drawRandomTargets(self, qp):
         number_of_targets = random.randint(3, 10)
