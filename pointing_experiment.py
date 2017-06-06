@@ -29,15 +29,15 @@ ImprovePointing = 0
 """
 
 class PointingExperimentModel(object):
-    def __init__(self, user_id, sizes, distances, improve_pointing, repetitions=4):
+    def __init__(self, user_id, diameters, distances, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
         self.user_id = user_id
-        self.sizes = sizes
+        self.diameters = diameters
         self.distances = distances
         self.improve_pointing = improve_pointing
         self.repetitions = repetitions
         # gives us a list of (distance, width) tuples:
-        self.targets = repetitions * list(itertools.product(distances, sizes))
+        self.targets = repetitions * list(itertools.product(distances, diameters))
         random.shuffle(self.targets)
         self.elapsed = 0
         self.errors = 0
@@ -64,7 +64,7 @@ class PointingExperimentModel(object):
     def register_click(self, target_pos, click_pos):
         dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
                          (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
-        if dist > self.current_target()[1]:
+        if dist > self.current_target()[1] / 2:
             self.errors += 1
             return False
         else:
@@ -75,15 +75,15 @@ class PointingExperimentModel(object):
             return True
 
     def log_time(self, time, click_offset):
-        distance, size = self.current_target()
+        distance, diameters = self.current_target()
         current_values = {"timestamp (ISO)": self.timestamp(), "user_id": self.user_id,
                           "trial": self.elapsed, "target_distance": distance,
-                          "target_size": size, "movement_time (ms)": time,
+                          "target_size": diameters, "movement_time (ms)": time,
                           "click_offset_x": click_offset[0], "click_offset_y": click_offset[1],
                           "number_of_errors": self.errors, "improved_pointing": self.improve_pointing
                           }
         self.out.writerow(current_values)
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (self.timestamp(), self.user_id, self.elapsed, distance, size, time, click_offset[0], click_offset[1], self.errors, self.improve_pointing))
+        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (self.timestamp(), self.user_id, self.elapsed, distance, diameters, time, click_offset[0], click_offset[1], self.errors, self.improve_pointing))
 
     def start_measurement(self):
         if not self.mouse_moving:
@@ -104,7 +104,7 @@ class PointingExperimentModel(object):
 
 class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
-    UI_HEIGHT = 800
+    UI_HEIGHT = 1080
 
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
@@ -160,7 +160,6 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def target_pos(self, distance):
         x = self.start_pos[0] + distance * math.cos(self.random_angle_in_rad)
         y = self.start_pos[1] + distance * math.sin(self.random_angle_in_rad)
-
         return (x, y)
 
     def getRandumAngleInRad(self):
@@ -189,10 +188,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
                 pos_y = random.randint(0 + size, self.UI_HEIGHT - size)
                 not_occupied = True
                 for e in ellipses:
-                    print(str(e[0]) + " " + str(e[1])+ " " + str(e[2]))
                     if self.are_circles_intersecting(pos_x, pos_y, size, e[0], e[1], e[2]):
                         not_occupied = False
-                        print("Intersecting")
                 retry_count += 1
                 can_draw = not_occupied
             qp.drawEllipse(pos_x, pos_y, size, size)
