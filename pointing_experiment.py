@@ -16,23 +16,26 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 UserID = 1
 Widths = 20, 50, 170, 200
 Distances = 100, 150, 200, 250
+ImprovePointing = 0
 """
 
 """ setup json file format:
 {
 "UserID" : "1",
 "Widths": "20, 50, 170, 200",
-"Distances": "50, 100, 150, 200"
+"Distances": "50, 100, 150, 200",
+"ImprovePointing": "0"
 }
 """
 
 class PointingExperimentModel(object):
 
-    def __init__(self, user_id, sizes, distances, repetitions=4):
+    def __init__(self, user_id, sizes, distances, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
         self.user_id = user_id
         self.sizes = sizes
         self.distances = distances
+        self.improve_pointing = improve_pointing
         self.repetitions = repetitions
         # gives us a list of (distance, width) tuples:
         self.targets = repetitions * list(itertools.product(distances, sizes))
@@ -42,13 +45,13 @@ class PointingExperimentModel(object):
         self.mouse_moving = False
         self.initLogging()
         print(
-            "timestamp (ISO); user_id; trial; target_distance; target_size; movement_time (ms); click_offset_x; click_offset_y; number_of_errors")
+            "timestamp (ISO); user_id; trial; target_distance; target_size; movement_time (ms); click_offset_x; click_offset_y; number_of_errors; improved_pointing")
 
     def initLogging(self):
         self.logfile = open("user" + str(self.user_id) + ".csv", "a")
         self.out = csv.DictWriter(self.logfile, ["timestamp (ISO)", "user_id", "trial", "target_distance", "target_size",
                                                  "movement_time (ms)", "click_offset_x", "click_offset_y",
-                                                 "number_of_errors"],
+                                                 "number_of_errors", "improved_pointing"],
                                   delimiter=";", quoting=csv.QUOTE_ALL)
         self.out.writeheader()
 
@@ -76,10 +79,11 @@ class PointingExperimentModel(object):
         current_values = {"timestamp (ISO)": self.timestamp(), "user_id": self.user_id,
                           "trial": self.elapsed, "target_distance": distance,
                           "target_size": size, "movement_time (ms)": time,
-                          "click_offset_x": click_offset[0], "click_offset_y": click_offset[1], "number_of_errors": self.errors
+                          "click_offset_x": click_offset[0], "click_offset_y": click_offset[1],
+                          "number_of_errors": self.errors, "improved_pointing": self.improve_pointing
                           }
         self.out.writerow(current_values)
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d" % (self.timestamp(), self.user_id, self.elapsed, distance, size, time, click_offset[0], click_offset[1], self.errors))
+        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (self.timestamp(), self.user_id, self.elapsed, distance, size, time, click_offset[0], click_offset[1], self.errors, self.improve_pointing))
 
     def start_measurement(self):
         if not self.mouse_moving:
@@ -161,7 +165,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.exit(1)
         # self.drawCircle(qp, QtGui.QColor(212, 212, 212))
         qp.setBrush(QtGui.QColor(212, 212, 212))
-        for number in number_of_targets:
+        for number in range(number_of_targets):
             qp.drawEllipse(random.randint(size+0, 960-size), random.randint(0+size, 400-size), size, size)
 
     def drawClickTarget(self, qp):
@@ -182,10 +186,10 @@ def main():
         sys.stderr.write("Usage: %s <setup file>\n" % sys.argv[0])
         sys.exit(1)
     if sys.argv[1].endswith('.ini'):
-        id, widths, distances = parse_ini_file(sys.argv[1])
+        id, widths, distances, improve_pointing = parse_ini_file(sys.argv[1])
     if sys.argv[1].endswith('.json'):
-        id, widths, distances = parse_json_file(sys.argv[1])
-    model = PointingExperimentModel(id, widths, distances)
+        id, widths, distances, improve_pointing = parse_json_file(sys.argv[1])
+    model = PointingExperimentModel(id, widths, distances, improve_pointing)
     test = PointingExperimentTest(model)
     sys.exit(app.exec_())
 
@@ -200,10 +204,11 @@ def parse_ini_file(filename):
         widths = [int(x) for x in widths_string.split(",")]
         distances_string = setup['Distances']
         distances = [int(x) for x in distances_string.split(",")]
+        improve_pointing = bool(int(setup['ImprovePointing']))
     else:
         print("Error: wrong file format.")
         sys.exit(1)
-    return user_id, widths, distances
+    return user_id, widths, distances, improve_pointing
 
 
 def parse_json_file(filename):
@@ -216,8 +221,8 @@ def parse_json_file(filename):
     widths = [int(x) for x in widths_string.split(",")]
     distances_string = setup["Distances"]
     distances = [int(x) for x in distances_string.split(",")]
-
-    return user_id, widths, distances
+    improve_pointing = bool(int(setup["ImprovePointing"]))
+    return user_id, widths, distances, improve_pointing
 
 if __name__ == '__main__':
     main()
