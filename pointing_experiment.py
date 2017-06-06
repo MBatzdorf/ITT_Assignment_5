@@ -183,6 +183,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
             self.model.start_measurement()
             # self.update()
+
         return
 
     def paintEvent(self, event):
