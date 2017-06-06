@@ -231,6 +231,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             sys.stderr.write("no targets left...")
             sys.exit(1)
         x, y = self.target_pos(distance)
+        self.ellipses.append(Ellipse(x, y, size))
         qp.setBrush(QtGui.QColor(59, 255, 0))
         qp.drawEllipse(x - size / 2, y - size / 2, size, size)
 
