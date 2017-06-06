@@ -106,6 +106,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
     UI_HEIGHT = 800
 
+    ID = -1
+
     ellipses = []
 
     def __init__(self, model):
@@ -171,13 +173,17 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp = QtGui.QPainter()
         qp.begin(self)
         self.drawRandomTargets(qp)
+        self.highlightTarget(qp)
         self.drawClickTarget(qp)
         self.drawText(event, qp)
         qp.end()
 
-    def highlightTarget(self, qp, index):
-        qp.setBrush(QtGui.QColor(200, 34, 20))
-        qp.drawEllipse(pos_x, pos_y, size, size)
+    def highlightTarget(self, qp):
+        if self.ID != -1:
+            qp.setBrush(QtGui.QColor(200, 34, 20))
+            qp.drawEllipse(self.ellipses[self.ID][0], self.ellipses[self.ID][1], self.ellipses[self.ID][2],
+                           self.ellipses[self.ID][2])
+        return
 
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
