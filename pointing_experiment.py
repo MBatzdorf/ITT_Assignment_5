@@ -9,8 +9,8 @@ import json
 import configparser
 import random
 # Did not work for me: Error module not found
-# import ITT_Assignment_5.pointing_technique as pt
-import pointing_technique as pt
+import ITT_Assignment_5.pointing_technique as pt
+# import pointing_technique as pt
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 """ setup ini file format:
@@ -61,8 +61,7 @@ class PointingExperimentModel(object):
         self.out = csv.DictWriter(self.logfile,
                                   ["timestamp (ISO)", "user_id", "trial", "target_distance", "target_size",
                                    "movement_time (ms)", "click_offset_x", "click_offset_y",
-                                   "number_of_errors", "improved_pointing"],
-                                  delimiter=";", quoting=csv.QUOTE_ALL)
+                                   "number_of_errors", "improved_pointing"], delimiter=";", quoting=csv.QUOTE_ALL)
         self.out.writeheader()
 
     def current_trial(self):
@@ -70,7 +69,6 @@ class PointingExperimentModel(object):
             return None
         else:
             return self.trials[self.elapsed]
-
 
     def register_click(self, target_pos, click_pos):
         click_offset = (target_pos.x() - click_pos.x(), target_pos.y() - click_pos.y())
@@ -145,6 +143,31 @@ class Target:
         self.pos_y = position_y
         self.diameter = diameter
 
+    def is_target_hit(self, point, pointer, target, is_new_pointing_technique):
+        is_hit = GeometryUtils.is_point_inside_target(QtCore.QPoint(point.x(), point.y()),
+                                                      QtCore.QPoint(target.pos_x, target.pos_y),
+                                                      self.diameter) or \
+                 (GeometryUtils.are_circles_intersecting(pointer.pos_x, pointer.pos_y,
+                                                         pointer.diameter / 2, target.pos_x,
+                                                         target.pos_y,
+                                                         self.diameter / 2) and is_new_pointing_technique)
+        return is_hit
+
+
+class ClickTarget(Target):
+    def __init__(self, position_x, position_y, diameter):
+        super().__init__(position_x, position_y, diameter)
+
+    def is_target_hit(self, point, pointer, is_new_pointing_technique, target=0):
+        is_hit = GeometryUtils.is_point_inside_target(QtCore.QPoint(point.x(), point.y()),
+                                                      QtCore.QPoint(self.pos_x, self.pos_y),
+                                                      self.diameter) or \
+                 (GeometryUtils.are_circles_intersecting(pointer.pos_x, pointer.pos_y,
+                                                         pointer.diameter / 2, self.pos_x,
+                                                         self.pos_y,
+                                                         self.diameter / 2) and is_new_pointing_technique)
+        return is_hit
+
 
 class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
@@ -157,12 +180,13 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
         self.model = model
-        self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
+        self.start_pos = QtCore.QPoint(self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
         self.random_angle_in_rad = self.getRandumAngleInRad()
         self.initRandomTargets()
         self.pointing_technique = pt.PointingTechnique(self.targets, Target)
-        self.new_pointer = self.pointing_technique.filter(self.start_pos[0], self.start_pos[1])
+        self.new_pointer = self.pointing_technique.filter(self.start_pos.x(), self.start_pos.y())
         self.initUI()
+        self.init_next_click_target(self.model.current_trial())
 
     def initRandomTargets(self):
         number_of_targets = random.randint(3, 10)
@@ -193,27 +217,27 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.setGeometry(0, 0, self.UI_WIDTH, self.UI_HEIGHT)
         self.setWindowTitle('PointingExperimentTest')
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-        QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
-        print(str(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1]))))
-        # self.new_pointer = self.pointing_technique.filter(self.start_pos[0], self.start_pos[1])
+        QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos.x(), self.start_pos.y())))
+        print(str(self.mapToGlobal(QtCore.QPoint(self.start_pos.x(), self.start_pos.y()))))
+        # self.new_pointer = self.pointing_technique.filter(self.start_pos.x(), self.start_pos.y())
 
         self.setMouseTracking(True)
         self.show()
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
-            tp = self.target_pos(self.model.current_trial().distance)
-            hit = GeometryUtils.is_point_inside_target(QtCore.QPoint(tp[0], tp[1]), QtCore.QPoint(ev.x(), ev.y()), self.model.current_trial().diameter) or \
-                              (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
-            self.new_pointer.diameter / 2, tp[0],
-            tp[1], self.model.current_trial().diameter / 2) and self.model.improve_pointing)
+            # tp = self.init_next_click_target(self.model.current_trial().distance)
+            hit = self.click_target.is_target_hit(QtCore.QPoint(ev.x(), ev.y()), self.new_pointer,
+                                                  self.model.improve_pointing)
+
             if hit:
-                self.model.register_click(QtCore.QPoint(tp[0], tp[1]), QtCore.QPoint(ev.x(), ev.y()))
-                QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
-                self.new_pointer = self.pointing_technique.filter(self.start_pos[0], self.start_pos[1])
+                self.model.register_click(QtCore.QPoint(self.click_target.pos_x, self.click_target.pos_y), QtCore.QPoint(ev.x(), ev.y()))
+                QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos.x(), self.start_pos.y())))
+                self.new_pointer = self.pointing_technique.filter(self.start_pos.x(), self.start_pos.y())
 
                 # self.new_pointer = self.pointing_technique.filter(ev.x(), ev.y())
                 self.random_angle_in_rad = self.getRandumAngleInRad()
+                self.init_next_click_target(self.model.current_trial())
                 self.initRandomTargets()
                 self.update()
             else:
@@ -223,7 +247,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
     def mouseMoveEvent(self, ev):
         self.new_pointer = self.pointing_technique.filter(ev.x(), ev.y())
-        if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
+        if (abs(ev.x() - self.start_pos.x()) > 5) or (abs(ev.y() - self.start_pos.y()) > 5):
             self.model.start_measurement()
             self.update()
 
@@ -235,7 +259,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
                     (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
                                                             self.new_pointer.diameter / 2, self.targets[i].pos_x,
                                                             self.targets[i].pos_y,
-                                                            self.targets[i].diameter / 2) and self.model.improve_pointing):
+                                                            self.targets[
+                                                                i].diameter / 2) and self.model.improve_pointing):
                 self.ID = i
 
         return
@@ -245,9 +270,9 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp.begin(self)
         self.drawRandomTargets(qp)
         self.drawClickTarget(qp)
-        self.drawCursor(qp)
         self.drawText(event, qp)
         self.highlightTarget(qp)
+        self.drawCursor(qp)
         qp.end()
 
     def drawCursor(self, qp):
@@ -265,16 +290,12 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
         cursor_pos = self.mapFromGlobal(QtGui.QCursor.pos())
         current_trial = self.model.current_trial()
-        tp = self.target_pos(self.model.current_trial().distance)
-        hit = GeometryUtils.is_point_inside_target(QtCore.QPoint(cursor_pos.x(), cursor_pos.y()),
-                                                   QtCore.QPoint(tp[0], tp[1]), current_trial.diameter) or \
-              (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
-                                                      self.new_pointer.diameter / 2, tp[0],
-                                                      tp[1],
-                                                      self.model.current_trial().diameter / 2) and self.model.improve_pointing)
+        # tp = self.init_next_click_target(current_trial)
+        hit = self.targets[self.ID].is_target_hit(QtCore.QPoint(cursor_pos.x(), cursor_pos.y()), self.new_pointer,
+                                                  self.click_target, self.model.improve_pointing)
         if hit:
             qp.setBrush(QtGui.QColor(200, 34, 20))
-            qp.drawEllipse(QtCore.QPoint(tp[0], tp[1]),
+            qp.drawEllipse(QtCore.QPoint(self.click_target.pos_x, self.click_target.pos_y),
                            self.model.current_trial().diameter / 2,
                            self.model.current_trial().diameter / 2)
         return
@@ -285,10 +306,10 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.text = "%d / %d (%05d ms)" % (self.model.elapsed, len(self.model.trials), self.model.timer.elapsed())
         qp.drawText(event.rect(), QtCore.Qt.AlignTop, self.text)
 
-    def target_pos(self, distance):
-        x = self.start_pos[0] + distance * math.cos(self.random_angle_in_rad)
-        y = self.start_pos[1] + distance * math.sin(self.random_angle_in_rad)
-        return (x, y)
+    def init_next_click_target(self, current_trial):
+        x = self.start_pos.x() + current_trial.distance * math.cos(self.random_angle_in_rad)
+        y = self.start_pos.y() + current_trial.distance * math.sin(self.random_angle_in_rad)
+        self.click_target = ClickTarget(x, y, current_trial.diameter)
 
     def getRandumAngleInRad(self):
         return math.radians(random.randint(0, 360))
@@ -303,9 +324,9 @@ class PointingExperimentTest(QtWidgets.QWidget):
         else:
             sys.stderr.write("no targets left...")
             sys.exit(1)
-        x, y = self.target_pos(distance)
+        # x, y = self.init_next_click_target(distance)
         qp.setBrush(QtGui.QColor(59, 255, 0))
-        qp.drawEllipse(QtCore.QPoint(x, y), size / 2, size / 2)
+        qp.drawEllipse(QtCore.QPoint(self.click_target.pos_x, self.click_target.pos_y), size / 2, size / 2)
 
     def getEllipses(self):
         return self.targets
