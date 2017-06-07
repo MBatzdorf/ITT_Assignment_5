@@ -37,15 +37,22 @@ class PointingExperimentModel(object):
         self.distances = distances
         self.improve_pointing = improve_pointing
         self.repetitions = repetitions
-        # gives us a list of (distance, width) tuples:
-        self.targets = repetitions * list(itertools.product(distances, diameters))
-        random.shuffle(self.targets)
+        self.initTrials(distances, diameters, repetitions)
+
         self.elapsed = 0
         self.errors = 0
         self.mouse_moving = False
         self.initLogging()
         print(
-            "timestamp (ISO); user_id; trial; target_distance; target_size; movement_time (ms); click_offset_x; click_offset_y; number_of_errors; improved_pointing")
+            "timestamp (ISO); user_id; trial; target_distance; target_size; movement_time (ms); click_offset_x; "
+            "click_offset_y; number_of_errors; improved_pointing")
+
+    def initTrials(self, distances, diameters, repetitions):
+        # gives us a list of (distance, width) tuples:
+        self.trials = repetitions * list(itertools.product(distances, diameters))
+        random.shuffle(self.trials)
+        for i in range(len(self.trials)):
+            self.trials[i] = Trial(self.trials[i][0], self.trials[i][1])
 
     def initLogging(self):
         self.logfile = open("user" + str(self.user_id) + ".csv", "a")
@@ -56,34 +63,32 @@ class PointingExperimentModel(object):
                                   delimiter=";", quoting=csv.QUOTE_ALL)
         self.out.writeheader()
 
-    def current_target(self):
-        if self.elapsed >= len(self.targets):
+    def current_trial(self):
+        if self.elapsed >= len(self.trials):
             return None
         else:
-            return self.targets[self.elapsed]
+            return self.trials[self.elapsed]
 
-    def is_point_inside(self, target_pos, click_pos):
+    """def is_point_inside(self, target_pos, click_pos):
         dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
                          (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
-        if dist <= self.current_target()[1] / 2:
+        if dist <= self.current_trial().diameter / 2:
             return True
-        return False
+        return False"""
 
     def register_click(self, target_pos, click_pos):
-        dist = math.sqrt((target_pos[0] - click_pos[0]) * (target_pos[0] - click_pos[0]) +
-                         (target_pos[1] - click_pos[1]) * (target_pos[1] - click_pos[1]))
-        if dist > self.current_target()[1] / 2:
+        if not GeometryUtils.is_point_inside_target(click_pos, target_pos, self.current_trial().diameter):
             self.errors += 1
             return False
         else:
-            click_offset = (target_pos[0] - click_pos[0], target_pos[1] - click_pos[1])
+            click_offset = (target_pos.x() - click_pos.x(), target_pos.y() - click_pos.y())
             self.log_time(self.stop_measurement(), click_offset)
             self.errors = 0
             self.elapsed += 1
             return True
 
     def log_time(self, time, click_offset):
-        distance, diameters = self.current_target()
+        distance, diameters = self.current_trial().getCurrentCondition()
         current_values = {"timestamp (ISO)": self.timestamp(), "user_id": self.user_id,
                           "trial": self.elapsed, "target_distance": distance,
                           "target_size": diameters, "movement_time (ms)": time,
@@ -112,18 +117,54 @@ class PointingExperimentModel(object):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
 
 
-class Ellipse():
+class Trial:
+    def __init__(self, distance, diameter):
+        self.distance = distance
+        self.diameter = diameter
+
+    def getCurrentCondition(self):
+        return self.distance, self.diameter
+
+
+class GeometryUtils:
+    @staticmethod
+    def calculateDistanceBetweenPoints(point1, point2):
+        return math.sqrt(math.pow(point2.x() - point1.x(), 2) + math.pow(point2.y() - point1.y(), 2))
+
+    @staticmethod
+    def are_circles_intersecting(x1, y1, radius1, x2, y2, radius2):
+        distance_circles = GeometryUtils.calculateDistanceBetweenPoints(QtCore.QPoint(x1, y1), QtCore.QPoint(x2, y2))
+        return distance_circles <= (radius1 + radius2)
+
+    @staticmethod
+    def is_point_inside_target(point, target, diameter):
+        distance = GeometryUtils.calculateDistanceBetweenPoints(QtCore.QPoint(point.x(), point.y()),
+                                                                QtCore.QPoint(target.x(), target.y()))
+        if distance <= diameter / 2:
+            return True
+        return False
+
+
+class Target:
     def __init__(self, position_x, position_y, diameter):
         self.pos_x = position_x
         self.pos_y = position_y
         self.diameter = diameter
 
-    def is_point_inside(self, x, y):
-        dist = math.sqrt((self.pos_x - x) * (self.pos_x - x) +
-                         (self.pos_y - y) * (self.pos_y - y))
+    """def is_target_hit(self, cursor_pos):
+        if GeometryUtils.is_point_inside_target(cursor_pos, QtCore.QPoint(self.pos_x, self.pos_y), 
+                                             self.diameter) or (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
+                self.new_pointer.diameter / 2, tp[0],
+                tp[1], self.model.current_trial().diameter / 2) and self.model.improve_pointing 
+            
+        pass"""
+
+    """def is_point_inside(self, x, y):
+        dist = GeometryUtils.calculateDistanceBetweenPoints(QtCore.QPoint(self.pos_x, self.pos_y),
+                                                            QtCore.QPoint(x, y))
         if dist <= self.diameter / 2:
             return True
-        return False
+        return False"""
 
 
 class PointingExperimentTest(QtWidgets.QWidget):
@@ -132,7 +173,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
     ID = -1
 
-    ellipses = []
+    targets = []
 
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
@@ -140,15 +181,15 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
         self.random_angle_in_rad = self.getRandumAngleInRad()
         self.initRandomTargets()
-        self.pointing_technique = pt.PointingTechnique(self.ellipses, Ellipse)
+        self.pointing_technique = pt.PointingTechnique(self.targets, Target)
         self.new_pointer = self.pointing_technique.filter(self.start_pos[0], self.start_pos[1])
         self.initUI()
 
     def initRandomTargets(self):
         number_of_targets = random.randint(3, 10)
-        self.ellipses = []
-        if self.model.current_target() is not None:
-            distance, size = self.model.current_target()
+        self.targets = []
+        if self.model.current_trial() is not None:
+            distance, size = self.model.current_trial().getCurrentCondition()
         else:
             sys.stderr.write("no targets left...")
             sys.exit(1)
@@ -161,12 +202,12 @@ class PointingExperimentTest(QtWidgets.QWidget):
                 pos_x = random.randint(size + 0, self.UI_WIDTH - size)
                 pos_y = random.randint(0 + size, self.UI_HEIGHT - size)
                 not_occupied = True
-                for e in self.ellipses:
-                    if self.are_circles_intersecting(pos_x, pos_y, size, e.pos_x, e.pos_y, e.diameter):
+                for e in self.targets:
+                    if GeometryUtils.are_circles_intersecting(pos_x, pos_y, size, e.pos_x, e.pos_y, e.diameter):
                         not_occupied = False
                 retry_count += 1
                 can_draw = not_occupied
-            self.ellipses.append(Ellipse(pos_x, pos_y, size))
+            self.targets.append(Target(pos_x, pos_y, size))
 
     def initUI(self):
         self.text = "Please click on the target"
@@ -182,11 +223,11 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
-            tp = self.target_pos(self.model.current_target()[0])
-            hit = self.model.register_click(tp, (ev.x(), ev.y())) or (self.are_circles_intersecting(
-                self.new_pointer.pos_x, self.new_pointer.pos_y,
+            tp = self.target_pos(self.model.current_trial().distance)
+            hit = self.model.register_click(QtCore.QPoint(tp[0], tp[1]), QtCore.QPoint(ev.x(), ev.y())) or \
+                  (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
                 self.new_pointer.diameter / 2, tp[0],
-                tp[1], self.model.current_target()[1] / 2) and self.model.improve_pointing)
+                tp[1], self.model.current_trial().diameter / 2) and self.model.improve_pointing)
 
             if hit:
                 QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos[0], self.start_pos[1])))
@@ -205,12 +246,14 @@ class PointingExperimentTest(QtWidgets.QWidget):
             self.update()
 
         self.ID = -1
-        for i in range(len(self.ellipses)):
-            if self.ellipses[i].is_point_inside(ev.x(), ev.y()) or \
-                    (self.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
-                                                   self.new_pointer.diameter / 2, self.ellipses[i].pos_x,
-                                                   self.ellipses[i].pos_y,
-                                                   self.ellipses[i].diameter / 2) and self.model.improve_pointing):
+        for i in range(len(self.targets)):
+            if GeometryUtils.is_point_inside_target(QtCore.QPoint(ev.x(), ev.y()),
+                                                    QtCore.QPoint(self.targets[i].pos_x, self.targets[i].pos_y),
+                                                    self.targets[i].diameter) or \
+                    (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
+                                                            self.new_pointer.diameter / 2, self.targets[i].pos_x,
+                                                            self.targets[i].pos_y,
+                                                            self.targets[i].diameter / 2) and self.model.improve_pointing):
                 self.ID = i
 
         return
@@ -234,27 +277,30 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def highlightTarget(self, qp):
         if self.ID != -1:
             qp.setBrush(QtGui.QColor(200, 34, 20))
-            qp.drawEllipse(QtCore.QPoint(self.ellipses[self.ID].pos_x, self.ellipses[self.ID].pos_y),
-                           self.ellipses[self.ID].diameter / 2,
-                           self.ellipses[self.ID].diameter / 2)
+            qp.drawEllipse(QtCore.QPoint(self.targets[self.ID].pos_x, self.targets[self.ID].pos_y),
+                           self.targets[self.ID].diameter / 2,
+                           self.targets[self.ID].diameter / 2)
 
         cursor_pos = self.mapFromGlobal(QtGui.QCursor.pos())
-        tp = self.target_pos(self.model.current_target()[0])
-        hit = self.model.is_point_inside(tp, (cursor_pos.x(), cursor_pos.y())) or (self.are_circles_intersecting(
-            self.new_pointer.pos_x, self.new_pointer.pos_y,
-            self.new_pointer.diameter / 2, tp[0],
-            tp[1], self.model.current_target()[1] / 2) and self.model.improve_pointing)
+        current_trial = self.model.current_trial()
+        tp = self.target_pos(self.model.current_trial().distance)
+        hit = GeometryUtils.is_point_inside_target(QtCore.QPoint(cursor_pos.x(), cursor_pos.y()),
+                                                   QtCore.QPoint(tp[0], tp[1]), current_trial.diameter) or \
+              (GeometryUtils.are_circles_intersecting(self.new_pointer.pos_x, self.new_pointer.pos_y,
+                                                      self.new_pointer.diameter / 2, tp[0],
+                                                      tp[1],
+                                                      self.model.current_trial().diameter / 2) and self.model.improve_pointing)
         if hit:
             qp.setBrush(QtGui.QColor(200, 34, 20))
             qp.drawEllipse(QtCore.QPoint(tp[0], tp[1]),
-                           self.model.current_target()[1] / 2,
-                           self.model.current_target()[1] / 2)
+                           self.model.current_trial().diameter / 2,
+                           self.model.current_trial().diameter / 2)
         return
 
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
         qp.setFont(QtGui.QFont('Decorative', 32))
-        self.text = "%d / %d (%05d ms)" % (self.model.elapsed, len(self.model.targets), self.model.timer.elapsed())
+        self.text = "%d / %d (%05d ms)" % (self.model.elapsed, len(self.model.trials), self.model.timer.elapsed())
         qp.drawText(event.rect(), QtCore.Qt.AlignCenter, self.text)
 
     def target_pos(self, distance):
@@ -265,17 +311,13 @@ class PointingExperimentTest(QtWidgets.QWidget):
     def getRandumAngleInRad(self):
         return math.radians(random.randint(0, 360))
 
-    def are_circles_intersecting(self, x1, y1, radius1, x2, y2, radius2):
-        distance_circles = math.sqrt(math.pow(x2 - x1, 2) + math.pow(y2 - y1, 2))
-        return distance_circles <= (radius1 + radius2)
-
     def drawRandomTargets(self, qp):
-        for e in self.ellipses:
+        for e in self.targets:
             qp.drawEllipse(QtCore.QPoint(e.pos_x, e.pos_y), e.diameter / 2, e.diameter / 2)
 
     def drawClickTarget(self, qp):
-        if self.model.current_target() is not None:
-            distance, size = self.model.current_target()
+        if self.model.current_trial() is not None:
+            distance, size = self.model.current_trial().getCurrentCondition()
         else:
             sys.stderr.write("no targets left...")
             sys.exit(1)
@@ -284,7 +326,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp.drawEllipse(QtCore.QPoint(x, y), size / 2, size / 2)
 
     def getEllipses(self):
-        return self.ellipses
+        return self.targets
 
 
 def main():

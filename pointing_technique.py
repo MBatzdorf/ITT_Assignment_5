@@ -2,13 +2,13 @@
 
 
 class PointingTechnique(object):
-    ellipses = []
+    targets = []
 
     cursor_area_radius = 20
 
-    def __init__(self, ellipses, Ellipse):
-        self.ellipses = ellipses
-        self.cursor = Ellipse
+    def __init__(self, targets, Target):
+        self.targets = targets
+        self.cursor = Target
 
     def filter(self, pos_x, pos_y):
         self.cursor_pos_x = pos_x
