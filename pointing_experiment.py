@@ -166,13 +166,14 @@ class Target:
 class PointingExperimentTest(QtWidgets.QWidget):
     UI_WIDTH = 1920
     UI_HEIGHT = 800
+    BUBBLE_RADIUS = 20
 
     def __init__(self, model):
         super(PointingExperimentTest, self).__init__()
         self.model = model
         self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
         if self.model.improve_pointing:
-            self.pointing_technique = pt.PointingTechniqueFatBubble([], Target, 20)
+            self.pointing_technique = pt.PointingTechniqueFatBubble([], Target, self.BUBBLE_RADIUS)
         else:
             self.pointing_technique = pt.StandardPointingTechnique([], Target)
         self.initUI()
@@ -241,7 +242,16 @@ class PointingExperimentTest(QtWidgets.QWidget):
             else:
                 self.model.increment_error_count(1)
                 return
-        return
+        if ev.button() == QtCore.Qt.RightButton:
+            if not self.model.improve_pointing:
+                return
+            if type(self.pointing_technique) == pt.PointingTechniqueFatBubble:
+                self.pointing_technique = pt.StandardPointingTechnique(self.targets, Target)
+            else :
+                self.pointing_technique = pt.PointingTechniqueFatBubble(self.targets, Target, self.BUBBLE_RADIUS)
+
+            self.pointer = self.pointing_technique.filter(ev.x(), ev.y())
+            self.update()
 
     def mouseMoveEvent(self, ev):
         self.pointer = self.pointing_technique.filter(ev.x(), ev.y())

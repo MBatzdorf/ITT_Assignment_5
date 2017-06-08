@@ -15,20 +15,24 @@ class StandardPointingTechnique(object):
         self.target_class = Target
 
     def filter(self, pos_x, pos_y):
+        self.calculate_mouse_direction(pos_x, pos_y)
+        self.cursor_pos_x = pos_x
+        self.cursor_pos_y = pos_y
+
+        return self.target_class(pos_x, pos_y, 1)
+
+    def calculate_mouse_direction(self, new_x, new_y):
         if self.last_x == -1 or self.last_y == -1:
-            self.last_x = pos_x
-            self.last_y = pos_y
+            self.last_x = new_x
+            self.last_y = new_y
         else:
-            distance = [pos_x - self.last_x, pos_y - self.cursor_pos_y]
+            distance = [new_x - self.last_x, new_y - self.cursor_pos_y]
             norm = math.sqrt(distance[0] ** 2 + distance[1] ** 2)
             if norm == 0:
                 norm = 1
             self.direction = [distance[0] / norm, distance[1] / norm]
-            self.last_x = pos_x
-            self.last_y = pos_y
-        self.cursor_pos_x = pos_x
-        self.cursor_pos_y = pos_y
-        return self.target_class(pos_x, pos_y, 2)
+            self.last_x = new_x
+            self.last_y = new_y
 
     def get_cursor_direction(self):
         return self.direction
@@ -53,7 +57,7 @@ class PointingTechniqueFatBubble(StandardPointingTechnique):
         self.cursor_area_radius = bubble_radius
 
     def filter(self, pos_x, pos_y):
-        super().filter(pos_x, pos_y)
+        std_target = super().filter(pos_x, pos_y)
         return self.target_class(pos_x, pos_y, 2 * self.cursor_area_radius)
 
     def get_cursor_direction(self):
