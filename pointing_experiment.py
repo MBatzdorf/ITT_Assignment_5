@@ -52,9 +52,23 @@ class PointingExperimentModel(object):
     def initTrials(self, distances, diameters, repetitions):
         # gives us a list of (distance, width) tuples:
         self.trials = repetitions * list(itertools.product(distances, diameters))
-        random.shuffle(self.trials)
+        # random.shuffle(self.trials)
+        self.trials = self.counterbalance_trials(self.trials, self.user_id)
         for i in range(len(self.trials)):
             self.trials[i] = Trial(self.trials[i][0], self.trials[i][1])
+
+    def counterbalance_trials(self, trials, userid):
+        n = len(trials)
+        # https://stackoverflow.com/questions/6667201/how-to-define-two-dimensional-array-in-python
+        balanced_trials_matrix = [[0 for x in range(n)] for y in range(n)]
+        for row in range(n):
+            for col in range(n):
+                # https://stackoverflow.com/questions/34276996/shifting-a-2d-array-to-the-left-loop
+                balanced_trials_matrix[row][col] = trials[(row + col) % n]
+
+            print(balanced_trials_matrix[row])
+
+        return balanced_trials_matrix[int(userid) - 1]
 
     def initLogging(self):
         self.logfile = open("user" + str(self.user_id) + ".csv", "a")
@@ -231,7 +245,8 @@ class PointingExperimentTest(QtWidgets.QWidget):
                                                   self.model.improve_pointing)
 
             if hit:
-                self.model.register_click(QtCore.QPoint(self.click_target.pos_x, self.click_target.pos_y), QtCore.QPoint(ev.x(), ev.y()))
+                self.model.register_click(QtCore.QPoint(self.click_target.pos_x, self.click_target.pos_y),
+                                          QtCore.QPoint(ev.x(), ev.y()))
                 QtGui.QCursor.setPos(self.mapToGlobal(QtCore.QPoint(self.start_pos.x(), self.start_pos.y())))
                 self.new_pointer = self.pointing_technique.filter(self.start_pos.x(), self.start_pos.y())
 
@@ -307,9 +322,10 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp.drawText(event.rect(), QtCore.Qt.AlignTop, self.text)
 
     def init_next_click_target(self, current_trial):
-        x = self.start_pos.x() + current_trial.distance * math.cos(self.random_angle_in_rad)
-        y = self.start_pos.y() + current_trial.distance * math.sin(self.random_angle_in_rad)
-        self.click_target = ClickTarget(x, y, current_trial.diameter)
+        if current_trial is not None:
+            x = self.start_pos.x() + current_trial.distance * math.cos(self.random_angle_in_rad)
+            y = self.start_pos.y() + current_trial.distance * math.sin(self.random_angle_in_rad)
+            self.click_target = ClickTarget(x, y, current_trial.diameter)
 
     def getRandumAngleInRad(self):
         return math.radians(random.randint(0, 360))
