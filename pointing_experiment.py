@@ -9,7 +9,8 @@ import json
 import configparser
 import random
 # Did not work for me: Error module not found
-import ITT_Assignment_5.pointing_technique as pt
+#import ITT_Assignment_5.pointing_technique as pt
+import pointing_technique as pt
 # import pointing_technique as pt
 from PyQt5 import QtGui, QtWidgets, QtCore
 
