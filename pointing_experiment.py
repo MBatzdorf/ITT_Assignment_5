@@ -9,8 +9,9 @@ import json
 import configparser
 import random
 # Did not work for me: Error module not found
-# import ITT_Assignment_5.pointing_technique as pt
+#import ITT_Assignment_5.pointing_technique as pt
 import pointing_technique as pt
+# import pointing_technique as pt
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 """ setup ini file format:
@@ -53,17 +54,30 @@ class PointingExperimentModel(object):
     def initTrials(self, distances, diameters, repetitions):
         # gives us a list of (distance, width) tuples:
         self.trials = repetitions * list(itertools.product(distances, diameters))
-        random.shuffle(self.trials)
+        # random.shuffle(self.trials)
+        self.trials = self.counterbalance_trials(self.trials, self.user_id)
         for i in range(len(self.trials)):
             self.trials[i] = Trial(self.trials[i][0], self.trials[i][1])
+
+    def counterbalance_trials(self, trials, userid):
+        n = len(trials)
+        # https://stackoverflow.com/questions/6667201/how-to-define-two-dimensional-array-in-python
+        balanced_trials_matrix = [[0 for x in range(n)] for y in range(n)]
+        for row in range(n):
+            for col in range(n):
+                # https://stackoverflow.com/questions/34276996/shifting-a-2d-array-to-the-left-loop
+                balanced_trials_matrix[row][col] = trials[(row + col) % n]
+
+            print(balanced_trials_matrix[row])
+
+        return balanced_trials_matrix[int(userid) - 1]
 
     def initLogging(self):
         self.logfile = open("user" + str(self.user_id) + ".csv", "a")
         self.out = csv.DictWriter(self.logfile,
                                   ["timestamp (ISO)", "user_id", "trial", "target_distance", "target_size",
                                    "movement_time (ms)", "click_offset_x", "click_offset_y",
-                                   "number_of_errors", "improved_pointing"],
-                                  delimiter=";", quoting=csv.QUOTE_ALL)
+                                   "number_of_errors", "improved_pointing"], delimiter=";", quoting=csv.QUOTE_ALL)
         self.out.writeheader()
 
     def current_trial(self):
@@ -71,7 +85,6 @@ class PointingExperimentModel(object):
             return None
         else:
             return self.trials[self.elapsed]
-
 
     def register_click(self, target_pos, click_pos):
         click_offset = (target_pos[0] - click_pos[0], target_pos[1] - click_pos[1])
