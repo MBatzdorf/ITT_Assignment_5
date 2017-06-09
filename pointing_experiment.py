@@ -1,15 +1,15 @@
 #!/usr/bin/python3
 
 
-import sys
-import csv
-import math
-import itertools
-import json
 import configparser
+import csv
+import json
+import math
 import random
+import sys
+
 # Did not work for me: Error module not found
-#import ITT_Assignment_5.pointing_technique as pt
+# import ITT_Assignment_5.pointing_technique as pt
 import pointing_technique as pt
 # import pointing_technique as pt
 from PyQt5 import QtGui, QtWidgets, QtCore
@@ -17,31 +17,29 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 """ setup ini file format:
 [experiment_setup]
 UserID = 1
-Widths = 20, 50, 170, 200
-Distances = 100, 150, 200, 250
+Conditions = 100,10;100,25;250,75;100,50;250,50;100,75;250,25;150,10;250,10;150,25;200,75;150,50;200,50;150,75;200,25;200,10
 ImprovePointing = 0
 """
 
 """ setup json file format:
 {
 "UserID" : "1",
-"Widths": "20, 50, 170, 200",
-"Distances": "50, 100, 150, 200",
+"Conditions": "100,10;100,25;250,75;100,50;250,50;100,75;250,25;150,10;250,10;150,25;200,75;150,50;200,50;150,75;200,25;200,10",
 "ImprovePointing": "0"
 }
 """
 
 
 class PointingExperimentModel(object):
-    
-    def __init__(self, user_id, diameters, distances, improve_pointing, repetitions=4):
+    def __init__(self, user_id, conditions, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
         self.user_id = user_id
-        self.diameters = diameters
-        self.distances = distances
+        """self.diameters = diameters
+        self.distances = distances"""
+        self.conditions = conditions
         self.improve_pointing = improve_pointing
         self.repetitions = repetitions
-        self.init_trials(distances, diameters, repetitions)
+        self.init_trials(conditions, repetitions)
 
         self.elapsed = 0
         self.errors = 0
@@ -51,11 +49,10 @@ class PointingExperimentModel(object):
             "timestamp (ISO); user_id; trial; target_distance; target_size; movement_time (ms); click_offset_x; "
             "click_offset_y; number_of_errors; improved_pointing")
 
-    def init_trials(self, distances, diameters, repetitions):
-        # gives us a list of (distance, width) tuples:
-        self.trials = repetitions * list(itertools.product(distances, diameters))
-        # random.shuffle(self.trials)
-        self.trials = self.counterbalance_trials(self.trials, self.user_id)
+    def init_trials(self, conditions, repetitions):
+        self.trials = repetitions * conditions
+        print(self.trials)
+
         for i in range(len(self.trials)):
             self.trials[i] = Trial(self.trials[i][0], self.trials[i][1])
 
@@ -151,8 +148,8 @@ class Target:
     def draw_highlighted(self, painter):
         painter.setBrush(QtGui.QColor(200, 34, 20))
         painter.drawEllipse(QtCore.QPoint(self.pos_x, self.pos_y),
-                           self.diameter / 2,
-                           self.diameter / 2)
+                            self.diameter / 2,
+                            self.diameter / 2)
 
     def draw_colored(self, painter, color):
         painter.setBrush(color)
@@ -170,7 +167,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.model = model
         self.start_pos = (self.UI_WIDTH / 2, self.UI_HEIGHT / 2)
         self.initUI()
-        self.reset_trial()
+        self.resetTrial()
 
     def initUI(self):
         self.text = "Please click on the target"
@@ -289,10 +286,10 @@ def main():
         sys.stderr.write("Usage: %s <setup file>\n" % sys.argv[0])
         sys.exit(1)
     if sys.argv[1].endswith('.ini'):
-        id, widths, distances, improve_pointing = parse_ini_file(sys.argv[1])
+        id, conditions, improve_pointing = parse_ini_file(sys.argv[1])
     if sys.argv[1].endswith('.json'):
-        id, widths, distances, improve_pointing = parse_json_file(sys.argv[1])
-    model = PointingExperimentModel(id, widths, distances, improve_pointing)
+        id, conditions, improve_pointing = parse_json_file(sys.argv[1])
+    model = PointingExperimentModel(id, conditions, improve_pointing)
     test = PointingExperimentTest(model)
     sys.exit(app.exec_())
 
@@ -303,29 +300,27 @@ def parse_ini_file(filename):
     if 'experiment_setup' in config:
         setup = config['experiment_setup']
         user_id = setup['UserID']
-        widths_string = setup['Widths']
-        widths = [int(x) for x in widths_string.split(",")]
-        distances_string = setup['Distances']
-        distances = [int(x) for x in distances_string.split(",")]
+        conditions_string = setup['Conditions']
+        # inspired by: https://stackoverflow.com/questions/9763116/parse-a-tuple-from-a-string
+        conditions = [tuple(map(int, x.split(","))) for x in conditions_string.split(";")]
         improve_pointing = bool(int(setup['ImprovePointing']))
     else:
         print("Error: wrong file format.")
         sys.exit(1)
-    return user_id, widths, distances, improve_pointing
+    return user_id, conditions, improve_pointing
 
 
 def parse_json_file(filename):
     setup = json.load(open(filename))
-    if "UserID" not in setup or "Widths" not in setup or "Distances" not in setup:
+    if "UserID" not in setup or "Conditions" not in setup:
         print("Error: wrong file format.")
         sys.exit(1)
     user_id = setup["UserID"]
-    widths_string = setup["Widths"]
-    widths = [int(x) for x in widths_string.split(",")]
-    distances_string = setup["Distances"]
-    distances = [int(x) for x in distances_string.split(",")]
+    conditions_string = setup['Conditions']
+    # inspired by: https://stackoverflow.com/questions/9763116/parse-a-tuple-from-a-string
+    conditions = [tuple(map(int, x.split(","))) for x in conditions_string.split(";")]
     improve_pointing = bool(int(setup["ImprovePointing"]))
-    return user_id, widths, distances, improve_pointing
+    return user_id, conditions, improve_pointing
 
 
 if __name__ == '__main__':
