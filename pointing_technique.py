@@ -1,41 +1,23 @@
 #!usr/bin/python3
 
-import math
 
+import math
+from PyQt5 import QtGui, QtCore
 
 class StandardPointingTechnique(object):
     targets = []
-    last_x = -1
-    last_y = -1
-    direction = [0, 0]
-    cursor_area_radius = 20
-
     def __init__(self, targets, Target):
         self.targets = targets
         self.target_class = Target
 
     def filter(self, pos_x, pos_y):
-        self.calculate_mouse_direction(pos_x, pos_y)
         self.cursor_pos_x = pos_x
         self.cursor_pos_y = pos_y
 
         return self.target_class(pos_x, pos_y, 1)
 
-    def calculate_mouse_direction(self, new_x, new_y):
-        if self.last_x == -1 or self.last_y == -1:
-            self.last_x = new_x
-            self.last_y = new_y
-        else:
-            distance = [new_x - self.last_x, new_y - self.cursor_pos_y]
-            norm = math.sqrt(distance[0] ** 2 + distance[1] ** 2)
-            if norm == 0:
-                norm = 1
-            self.direction = [distance[0] / norm, distance[1] / norm]
-            self.last_x = new_x
-            self.last_y = new_y
-
-    def get_cursor_direction(self):
-        return self.direction
+    def draw_pointer(self, painter):
+        return
 
     def get_targets_under_cursor(self):
 
@@ -53,15 +35,17 @@ class PointingTechniqueFatBubble(StandardPointingTechnique):
 
     def __init__(self, targets, Target, bubble_radius):
         super().__init__(targets, Target)
-        #self.cursor_area_radius = 20
         self.cursor_area_radius = bubble_radius
 
     def filter(self, pos_x, pos_y):
         std_target = super().filter(pos_x, pos_y)
         return self.target_class(pos_x, pos_y, 2 * self.cursor_area_radius)
 
-    def get_cursor_direction(self):
-        return super().get_cursor_direction()
+    def draw_pointer(self, painter):
+        painter.setBrush(QtGui.QColor(0, 0, 255))
+        painter.drawEllipse(QtCore.QPoint(self.cursor_pos_x, self.cursor_pos_y), self.cursor_area_radius,
+                       self.cursor_area_radius)
+
 
     def get_targets_under_cursor(self):
         hits = []
