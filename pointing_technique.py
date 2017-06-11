@@ -4,8 +4,10 @@
 import math
 from PyQt5 import QtGui, QtCore
 
+
 class StandardPointingTechnique(object):
     targets = []
+
     def __init__(self, targets, Target):
         self.targets = targets
         self.target_class = Target
@@ -23,7 +25,8 @@ class StandardPointingTechnique(object):
 
         hits = []
         for target in self.targets:
-            if GeometryUtils.is_point_inside_target([self.cursor_pos_x, self.cursor_pos_y],[target.pos_x, target.pos_y],target.diameter):
+            if GeometryUtils.is_point_inside_target([self.cursor_pos_x, self.cursor_pos_y],
+                                                    [target.pos_x, target.pos_y], target.diameter):
                 hits.append(target)
         return hits
 
@@ -32,7 +35,6 @@ class StandardPointingTechnique(object):
 
 
 class PointingTechniqueFatBubble(StandardPointingTechnique):
-
     def __init__(self, targets, Target, bubble_radius):
         super().__init__(targets, Target)
         self.cursor_area_radius = bubble_radius
@@ -44,13 +46,13 @@ class PointingTechniqueFatBubble(StandardPointingTechnique):
     def draw_pointer(self, painter):
         painter.setBrush(QtGui.QColor(0, 0, 255))
         painter.drawEllipse(QtCore.QPoint(self.cursor_pos_x, self.cursor_pos_y), self.cursor_area_radius,
-                       self.cursor_area_radius)
-
+                            self.cursor_area_radius)
 
     def get_targets_under_cursor(self):
         hits = []
         for target in self.targets:
-            if GeometryUtils.are_circles_intersecting(self.cursor_pos_x, self.cursor_pos_y, self.cursor_area_radius, target.pos_x, target.pos_y, target.diameter / 2):
+            if GeometryUtils.are_circles_intersecting(self.cursor_pos_x, self.cursor_pos_y, self.cursor_area_radius,
+                                                      target.pos_x, target.pos_y, target.diameter / 2):
                 hits.append(target)
         return hits
 
