@@ -6,7 +6,6 @@ from PyQt5 import QtGui, QtCore
 
 # This script was created by Alexander Frummet and Marco Batzdorf
 
-
 class StandardPointingTechnique(object):
 
     """
@@ -52,6 +51,7 @@ class StandardPointingTechnique(object):
         hits = []
         for target in self.targets:
             if GeometryUtils.is_point_inside_circle([self.cursor_pos_x, self.cursor_pos_y],
+
                                                     [target.pos_x, target.pos_y], target.diameter):
                 hits.append(target)
         return hits
