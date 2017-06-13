@@ -7,8 +7,10 @@ import json
 import math
 import random
 import sys
-# import ITT_Assignment_5.pointing_technique as pt
-import pointing_technique as pt
+try:
+    import pointing_technique as pt
+except ImportError:
+    print("Could not import pointing_technique.py")
 from PyQt5 import QtGui, QtWidgets, QtCore
 
 # This script was created by Alexander Frummet and Marco Batzdorf
