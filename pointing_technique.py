@@ -6,8 +6,19 @@ from PyQt5 import QtGui, QtCore
 
 # This script was created by Alexander Frummet and Marco Batzdorf
 
-class StandardPointingTechnique(object):
+"""
+AREA BUBBLE POINTER (= our pointing technique, implemented as class PointingTechniqueFatBubble)
+We implemented a pointing technique called Area Bubble Pointer which is inspired by the Bubble Cursor
+(Grossmann & Balakrishnan 2005). The pointer there is a circle that can be switched
+on and off when pressing the right mouse button. We developed this pointing technique to facilitate hitting targets,
+especially when they are quite small. Due to the bigger size of this pointer in comparison to the standard pointer,
+we hope that hitting targets becomes much faster. As already mentioned, there is the ability to switch of the
+circle and return to standard pointing when there are small targets lying next to each other so that a selection
+with the bubble pointer becomes quite hard or even impossible
+"""
 
+
+class StandardPointingTechnique(object):
     """
         This class implements the system's standard pointing technique
         and acts as a base class for enhanced pointing techniques.
@@ -30,6 +41,7 @@ class StandardPointingTechnique(object):
         @param pos_x: New mouse position on the X-Axis
         @param pos_y: New mouse position on the Y-Axis
     '''
+
     def filter(self, pos_x, pos_y):
         self.cursor_pos_x = pos_x
         self.cursor_pos_y = pos_y
@@ -38,6 +50,7 @@ class StandardPointingTechnique(object):
 
         @param painter: PyQt QPainter object that can draw to the canvas
     '''
+
     def draw_pointer(self, painter):
         return
 
@@ -46,6 +59,7 @@ class StandardPointingTechnique(object):
 
         @return: A list of all targets that are currently under the pointer
     '''
+
     def get_targets_under_cursor(self):
 
         hits = []
@@ -60,12 +74,12 @@ class StandardPointingTechnique(object):
 
         @param targets: The new list of targets replacing the old target list
     '''
+
     def update_targets(self, targets):
         self.targets = targets
 
 
 class PointingTechniqueFatBubble(StandardPointingTechnique):
-
     """
         This class extends the standard pointing technique as seen above
         In addition to the normal pointer the clicking area and visual representation are extended
@@ -88,6 +102,7 @@ class PointingTechniqueFatBubble(StandardPointingTechnique):
 
         @param painter: PyQt QPainter object that can draw to the canvas
     '''
+
     def draw_pointer(self, painter):
         painter.setBrush(self.COLOR_BLUE)
         painter.drawEllipse(QtCore.QPoint(self.cursor_pos_x, self.cursor_pos_y), self.cursor_area_radius,
@@ -98,6 +113,7 @@ class PointingTechniqueFatBubble(StandardPointingTechnique):
 
         @return: A list of all targets that are currently under the pointer
     '''
+
     def get_targets_under_cursor(self):
         hits = []
         for target in self.targets:
@@ -111,7 +127,6 @@ class PointingTechniqueFatBubble(StandardPointingTechnique):
 
 
 class GeometryUtils:
-
     """
         Utility class for mathematical operations in 2D space
     """
@@ -123,6 +138,7 @@ class GeometryUtils:
 
         @return: The distance between the points
     '''
+
     @staticmethod
     def calculate_distance_between_points(point1, point2):
         return math.sqrt(math.pow(point2[0] - point1[0], 2) + math.pow(point2[1] - point1[1], 2))
@@ -138,6 +154,7 @@ class GeometryUtils:
 
         @return: True if the two circles are intersecting, False if not
     '''
+
     @staticmethod
     def are_circles_intersecting(x1, y1, radius1, x2, y2, radius2):
         distance_circles = GeometryUtils.calculate_distance_between_points([x1, y1], [x2, y2])
@@ -152,6 +169,7 @@ class GeometryUtils:
 
         @return: True if the point is inside the given circle, False if not
     '''
+
     @staticmethod
     def is_point_inside_circle(point, center, diameter):
         distance = GeometryUtils.calculate_distance_between_points(point, center)

@@ -17,24 +17,26 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 """ setup ini file format:
 [experiment_setup]
 UserID = 1
-Conditions = 100,10;100,25;250,75;100,50;250,50;100,75;250,25;150,10;250,10;150,25;200,75;150,50;200,50;150,75;200,25;200,10
+Conditions = 100,10;100,25;250,75;100,50;250,50;100,75;250,25;150,10;250,10;150,25;200,75;150,50;200,50;150,75;200,25;
+             200,10
 ImprovePointing = 0
 """
 
 """ setup json file format:
 {
 "UserID" : "1",
-"Conditions": "100,10;100,25;250,75;100,50;250,50;100,75;250,25;150,10;250,10;150,25;200,75;150,50;200,50;150,75;200,25;200,10",
+"Conditions": "100,10;100,25;250,75;100,50;250,50;100,75;250,25;150,10;250,10;150,25;200,75;150,50;200,50;150,75;200,25;
+              200,10",
 "ImprovePointing": "0"
 }
 """
 
 
 class PointingExperimentModel(object):
-
     """
         This experiment model keeps track of all information concerning a pointing test.
-        The experiment settings are given via instantiation parameters and the trial order is generated in a counterbalanced way
+        The experiment settings are given via instantiation parameters and the trial order is generated in a
+        counterbalanced way.
         Further all information are logged to stdout and stored in a file in csv format.
 
         @param user_id: ID for the user participating
@@ -43,7 +45,6 @@ class PointingExperimentModel(object):
         @param improve_pointing: Whether the improved pointing technique should be used or the standard one
         @param repetitions: Indicates how often all trials should be repeated
     """
-
 
     def __init__(self, user_id, conditions, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
@@ -64,6 +65,7 @@ class PointingExperimentModel(object):
             "click_offset_y; number_of_errors; improved_pointing")
 
     ''' Initializes the order of the single trials '''
+
     def init_trials(self, conditions, repetitions):
         self.trials = repetitions * conditions
         print(self.trials)
@@ -72,6 +74,7 @@ class PointingExperimentModel(object):
             self.trials[i] = Trial(self.trials[i][0], self.trials[i][1])
 
     ''' Counterbalances a given list of [distance, diameter] tuples '''
+
     def counterbalance_trials(self, trials, userid):
         n = len(trials)
         # https://stackoverflow.com/questions/6667201/how-to-define-two-dimensional-array-in-python
@@ -88,6 +91,7 @@ class PointingExperimentModel(object):
     ''' Initialize experiment logging
         Creates a new csv file and writes the corresponding header line
     '''
+
     def init_logging(self):
         self.logfile = open("user" + str(self.user_id) + ".csv", "a")
         self.out = csv.DictWriter(self.logfile,
@@ -97,6 +101,7 @@ class PointingExperimentModel(object):
         self.out.writeheader()
 
     ''' Helper for getting the current [distance, diameter] tuple representing the current trial's settings'''
+
     def current_trial(self):
         if self.elapsed >= len(self.trials):
             return None
@@ -106,6 +111,7 @@ class PointingExperimentModel(object):
     ''' Tells the model that the correct target has been hit
         Updates the current target to the next one and triggers writing the trial results to the csv file
     '''
+
     def register_click(self, target_pos, click_pos):
         click_offset = (target_pos[0] - click_pos[0], target_pos[1] - click_pos[1])
         self.log_time(self.stop_measurement(), click_offset)
@@ -113,6 +119,7 @@ class PointingExperimentModel(object):
         self.elapsed += 1
 
     ''' Writes all useful trial information to the log csv file'''
+
     def log_time(self, time, click_offset):
         distance, diameters = self.current_trial().get_current_condition()
         current_values = {"timestamp (ISO)": self.timestamp(), "user_id": self.user_id,
@@ -127,6 +134,7 @@ class PointingExperimentModel(object):
             self.errors, self.improve_pointing))
 
     ''' Tells the model to start the timer and that the mouse is moving '''
+
     def start_measurement(self):
         if not self.mouse_moving:
             self.timer.start()
@@ -135,6 +143,7 @@ class PointingExperimentModel(object):
     ''' Stops counting the time because the mouse is not moving anymore.
         Returns the elapsed time for the current trial
     '''
+
     def stop_measurement(self):
         if self.mouse_moving:
             elapsed = self.timer.elapsed()
@@ -144,16 +153,17 @@ class PointingExperimentModel(object):
             return -1
 
     ''' Returns a timestamp'''
+
     def timestamp(self):
         return QtCore.QDateTime.currentDateTime().toString(QtCore.Qt.ISODate)
 
     ''' Helper to increment the error count for the current trial'''
+
     def increment_error_count(self, amount):
         self.errors += amount
 
 
 class Trial:
-
     """
         Stores the settings for a single trial of the experiment
 
@@ -166,12 +176,12 @@ class Trial:
         self.diameter = diameter
 
     ''' Helper for accessing this trial's settings'''
+
     def get_current_condition(self):
         return self.distance, self.diameter
 
 
 class Target:
-
     """
         Represents a target that can be displayed on the participant's screen
         Targets are represented by a circle and can be highlighted
@@ -194,12 +204,14 @@ class Target:
         return self.__dict__ == other.__dict__
 
     ''' Draws the standard representation of this target to the screen'''
+
     def draw(self, painter):
         painter.setBrush(self.COLOR_WHITE)
         painter.drawEllipse(QtCore.QPoint(self.pos_x, self.pos_y), self.diameter / 2, self.diameter / 2)
         return
 
     ''' Highlight the circle with a red color'''
+
     def draw_highlighted(self, painter):
         painter.setBrush(self.COLOR_RED)
         painter.drawEllipse(QtCore.QPoint(self.pos_x, self.pos_y),
@@ -207,6 +219,7 @@ class Target:
                             self.diameter / 2)
 
     ''' Draws the target to the screen with the specified color'''
+
     def draw_colored(self, painter, color):
         painter.setBrush(color)
         painter.drawEllipse(QtCore.QPoint(self.pos_x, self.pos_y), self.diameter / 2, self.diameter / 2)
@@ -214,7 +227,6 @@ class Target:
 
 
 class PointingExperimentTest(QtWidgets.QWidget):
-
     """
         Main class for executing the pointing experiment/test
         Initializes and keeps track of the ui and pointing technique
@@ -240,6 +252,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
     ''' Initialize the UI
         Sets the window size, window title, focus policy and mouse startung position
     '''
+
     def initUI(self):
         self.text = "Please click on the target"
         self.setGeometry(0, 0, self.UI_WIDTH, self.UI_HEIGHT)
@@ -252,6 +265,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
     ''' Prepares and sets all variables for the next test
         Updates the UI and model and sets appropriate pointing technique
     '''
+
     def init_next_trial(self):
         if self.model.improve_pointing:
             self.pointing_technique = pt.PointingTechniqueFatBubble([], Target, self.BUBBLE_RADIUS)
@@ -265,6 +279,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.update()
 
     ''' Returns a randomly generated angle in Radians'''
+
     def getRandomAngleInRad(self):
         return math.radians(random.randint(0, 360))
 
@@ -277,6 +292,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         and/or too big to be placed in that manner after a few tries
 
     '''
+
     def initTargets(self):
         number_of_targets = random.randint(self.MIN_NUM_TARGETS, self.MAX_NUM_TARGETS)
         self.targets = []
@@ -303,18 +319,21 @@ class PointingExperimentTest(QtWidgets.QWidget):
             self.targets.append(Target(pos_x, pos_y, size))
 
     ''' Helper for getting the center position of the target that has to be clicked'''
+
     def getMainTargetPos(self, distance):
         x = self.start_pos[0] + distance * math.cos(self.random_angle_in_rad)
         y = self.start_pos[1] + distance * math.sin(self.random_angle_in_rad)
         return (x, y)
 
     ''' Helper for getting the target that has to be clicked'''
+
     def getMainTarget(self):
         return self.targets[0]
 
     ''' Changes between the improved and standard pointing technique
         Only has an effect if the improved pointing technique is allowed during the current experiment
     '''
+
     def togglePointingTechnique(self):
         if not self.model.improve_pointing:
             return
@@ -326,6 +345,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
     ''' Processes all click events for the mouse
         and checks if the main target has been hit
     '''
+
     def mousePressEvent(self, ev):
         if ev.button() == QtCore.Qt.LeftButton:
             main_target = self.getMainTarget()
@@ -341,6 +361,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.update()
 
     ''' Processes all movement events for the mouse and reroutes them to the pointing technique'''
+
     def mouseMoveEvent(self, ev):
         self.pointing_technique.filter(ev.x(), ev.y())
         if (abs(ev.x() - self.start_pos[0]) > 5) or (abs(ev.y() - self.start_pos[1]) > 5):
@@ -349,6 +370,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         return
 
     ''' Draws all elements to the screen'''
+
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
@@ -358,6 +380,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp.end()
 
     ''' Draws a text showing the passed time for this test'''
+
     def drawText(self, event, qp):
         qp.setPen(QtGui.QColor(168, 34, 3))
         qp.setFont(QtGui.QFont('Decorative', 32))
@@ -365,6 +388,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         qp.drawText(event.rect(), QtCore.Qt.AlignTop, self.text)
 
     ''' Responsible for drawing all targets depending on their current state (hovered, main target, normal target)'''
+
     def drawTargets(self, qp):
         for idx in range(len(self.targets)):
             if idx == 0:
@@ -377,7 +401,6 @@ class PointingExperimentTest(QtWidgets.QWidget):
 
 
 def main():
-
     """
         Starting class for this script
         Reads in a ini or json file passed as a command line parameter (see definition above)
@@ -385,22 +408,23 @@ def main():
         Starts the QtApplication afterwards with the newly created model
 
     """
-
-    app = QtWidgets.QApplication(sys.argv)
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <setup file>\n" % sys.argv[0])
-        sys.exit(1)
-    if sys.argv[1].endswith('.ini'):
-        id, conditions, improve_pointing = parse_ini_file(sys.argv[1])
-    if sys.argv[1].endswith('.json'):
-        id, conditions, improve_pointing = parse_json_file(sys.argv[1])
-    model = PointingExperimentModel(id, conditions, improve_pointing)
-    test = PointingExperimentTest(model)
-    sys.exit(app.exec_())
+    try:
+        app = QtWidgets.QApplication(sys.argv)
+        if len(sys.argv) < 2:
+            sys.stderr.write("Usage: %s <setup file>\n" % sys.argv[0])
+            sys.exit(1)
+        if sys.argv[1].endswith('.ini'):
+            id, conditions, improve_pointing = parse_ini_file(sys.argv[1])
+        if sys.argv[1].endswith('.json'):
+            id, conditions, improve_pointing = parse_json_file(sys.argv[1])
+        model = PointingExperimentModel(id, conditions, improve_pointing)
+        test = PointingExperimentTest(model)
+        sys.exit(app.exec_())
+    except Exception:
+        print("An error occured!")
 
 
 def parse_ini_file(filename):
-
     """
         Reads the information from a ini file
 
@@ -424,7 +448,6 @@ def parse_ini_file(filename):
 
 
 def parse_json_file(filename):
-
     """
         Reads the information from a json file
 
