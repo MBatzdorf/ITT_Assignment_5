@@ -33,6 +33,10 @@ ImprovePointing = 0
 
 
 class PointingExperimentModel(object):
+
+    """
+
+    """
     
     def __init__(self, user_id, diameters, distances, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
@@ -181,7 +185,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
         self.setMouseTracking(True)
         self.show()
 
-    def resetTrial(self):
+    def reset_trial(self):
         if self.model.improve_pointing:
             self.pointing_technique = pt.PointingTechniqueFatBubble([], Target, self.BUBBLE_RADIUS)
         else:
@@ -242,7 +246,7 @@ class PointingExperimentTest(QtWidgets.QWidget):
             main_target = self.getMainTarget()
             if main_target in self.pointing_technique.get_targets_under_cursor():
                 self.model.register_click([main_target.pos_x, main_target.pos_y], [ev.x(), ev.y()])
-                self.resetTrial()
+                self.reset_trial()
             else:
                 self.model.increment_error_count(1)
                 return
