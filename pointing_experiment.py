@@ -7,6 +7,7 @@ import json
 import math
 import random
 import sys
+
 try:
     import pointing_technique as pt
 except ImportError:
@@ -42,8 +43,7 @@ class PointingExperimentModel(object):
         Further all information are logged to stdout and stored in a file in csv format.
 
         @param user_id: ID for the user participating
-        @param diameters: A List containing all possible target diameters for this test
-        @param distances: A List containing all possible distances between pointer and target for this test
+        @param conditions: A list containing all conditions for this test
         @param improve_pointing: Whether the improved pointing technique should be used or the standard one
         @param repetitions: Indicates how often all trials should be repeated
     """
@@ -51,8 +51,6 @@ class PointingExperimentModel(object):
     def __init__(self, user_id, conditions, improve_pointing, repetitions=4):
         self.timer = QtCore.QTime()
         self.user_id = user_id
-        """self.diameters = diameters
-        self.distances = distances"""
         self.conditions = conditions
         self.improve_pointing = improve_pointing
         self.repetitions = repetitions
@@ -63,8 +61,8 @@ class PointingExperimentModel(object):
         self.mouse_moving = False
         self.init_logging()
         print(
-            "timestamp (ISO); user_id; trial; target_distance; target_size; movement_time (ms); click_offset_x; "
-            "click_offset_y; number_of_errors; improved_pointing")
+            "\"timestamp (ISO)\";\"user_id\";\"trial\";\"target_distance\";\"target_size\";\"movement_time (ms)\";"
+            "\"click_offset_x\";\"click_offset_y\";\"number_of_errors\";\"improved_pointing\"")
 
     ''' Initializes the order of the single trials '''
 
@@ -74,21 +72,6 @@ class PointingExperimentModel(object):
 
         for i in range(len(self.trials)):
             self.trials[i] = Trial(self.trials[i][0], self.trials[i][1])
-
-    ''' Counterbalances a given list of [distance, diameter] tuples '''
-
-    def counterbalance_trials(self, trials, userid):
-        n = len(trials)
-        # https://stackoverflow.com/questions/6667201/how-to-define-two-dimensional-array-in-python
-        balanced_trials_matrix = [[0 for x in range(n)] for y in range(n)]
-        for row in range(n):
-            for col in range(n):
-                # https://stackoverflow.com/questions/34276996/shifting-a-2d-array-to-the-left-loop
-                balanced_trials_matrix[row][col] = trials[(row + col) % n]
-
-            print(balanced_trials_matrix[row])
-
-        return balanced_trials_matrix[int(userid) - 1]
 
     ''' Initialize experiment logging
         Creates a new csv file and writes the corresponding header line
@@ -131,7 +114,7 @@ class PointingExperimentModel(object):
                           "number_of_errors": self.errors, "improved_pointing": self.improve_pointing
                           }
         self.out.writerow(current_values)
-        print("%s; %s; %d; %d; %d; %d; %d; %d; %d; %s" % (
+        print("\"%s\";\"%s\";\"%d\";\"%d\";\"%d\";\"%d\";\"%d\";\"%d\";\"%d\";\"%s\"" % (
             self.timestamp(), self.user_id, self.elapsed, distance, diameters, time, click_offset[0], click_offset[1],
             self.errors, self.improve_pointing))
 
